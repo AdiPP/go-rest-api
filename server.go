@@ -1,27 +1,32 @@
 package main
 
 import (
-	"encoding/json"
-	"log"
+	"fmt"
 	"net/http"
 
-	"github.com/gorilla/mux"
+	"github.com/AdiPP/go-rest-api/controller"
+	router "github.com/AdiPP/go-rest-api/http"
+	"github.com/AdiPP/go-rest-api/repository"
+	"github.com/AdiPP/go-rest-api/service"
+)
+
+var (
+	httpRouter router.Router = router.NewChiRouter()
+	postRepository repository.PostRepository = repository.NewFirestoreRepository()
+	postService service.PostService = service.NewPostService(postRepository)
+	postController controller.PostController = controller.NewPostController(postService)
 )
 
 func main () {
-	router := mux.NewRouter()
 	const port string = ":8000"
 
-	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode("Up and running...")
+	httpRouter.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("Up and running")
 	})
 
-	router.HandleFunc("/posts", getPosts).Methods(http.MethodGet)
+	httpRouter.Get("/posts", postController.GetPosts)
 
-	router.HandleFunc("/posts", createPost).Methods(http.MethodPost)
+	httpRouter.Post("/posts", postController.CreatePost)
 
-	log.Println("Server listening on port", port)
-	log.Fatalln(http.ListenAndServe(port, router))
+	httpRouter.Serve(port)
 }
